@@ -638,6 +638,9 @@ func (m *Model) renderStatus(w int) string {
 	case m.planFirst:
 		left += sDim.Render(" · ") + sTeal.Render("plan first")
 	}
+	if m.webOff {
+		left += sDim.Render(" · ") + sDim.Render("web off")
+	}
 	if !m.leader.IsZero() && time.Since(m.leader) < 3*time.Second {
 		left = " " + shimmer("ctrl+x …", m.frame, aurora) + sDim.Render(" waiting for a leader key (/keys lists them)")
 	}

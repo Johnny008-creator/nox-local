@@ -36,6 +36,7 @@ func init() {
 		{name: "effort", args: "[level]", desc: "How much the model may think: low, medium, high", run: cmdEffort},
 		{name: "mode", args: "[mode]", desc: "Permission mode: manual, plan, auto, yolo", run: cmdMode},
 		{name: "plan", args: "[toggle]", desc: "Plan first: the agent plans read-only, /go runs the plan", run: cmdPlanFirst},
+		{name: "web", args: "[on|off]", desc: "Web tools: on, or off so nothing leaves the machine", run: cmdWeb},
 		{name: "research", args: "<question>", desc: "Deep research: rounds of searching and reading, then a sourced report", run: cmdResearch},
 		{name: "btw", args: "<question>", desc: "Side question in parallel: does not touch the turn in flight", run: cmdBtw},
 		{name: "artifacts", args: "[n]", desc: "Charts, graphics, diagrams and documents this conversation made", run: cmdArtifacts},
@@ -277,6 +278,25 @@ func cmdCompact(m *Model, arg string) tea.Cmd {
 	m.shownAs = strings.TrimSpace("/compact " + arg)
 	m.compacting = true
 	return m.startTurn(compactPrompt + arg)
+}
+
+// cmdWeb switches the two network tools off for every later turn. The model
+// then has no way to reach the network at all.
+func cmdWeb(m *Model, arg string) tea.Cmd {
+	switch strings.ToLower(strings.TrimSpace(arg)) {
+	case "on":
+		m.webOff = false
+	case "off":
+		m.webOff = true
+	default:
+		m.webOff = !m.webOff
+	}
+	if m.webOff {
+		m.info("web off · WebSearch and WebFetch are left out of every turn; nothing leaves this machine")
+	} else {
+		m.info("web on · the model may search and fetch pages")
+	}
+	return nil
 }
 
 func cmdResearch(m *Model, arg string) tea.Cmd {

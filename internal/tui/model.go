@@ -171,6 +171,7 @@ type Model struct {
 	planPending  bool   // a plan is waiting for /go
 	planText     string // the plan the agent wrote, sent back on /go
 	turnPlanned  bool   // the running turn was a plan-first turn
+	webOff       bool   // WebSearch and WebFetch are left out of every turn
 	skipPlanOnce bool   // /go runs the approved plan without planning again
 
 	turnStart  time.Time
@@ -790,9 +791,13 @@ func (m *Model) startTurnOn(p agent.Provider, text string, mode agent.Mode, revi
 	ctx, cancel := context.WithCancel(context.Background())
 	research := m.research
 	m.research = false
+	var without []string
+	if m.webOff {
+		without = []string{"WebSearch", "WebFetch"}
+	}
 	ch, err := p.Run(ctx, agent.Request{
 		Prompt: prompt, Model: model, SessionID: sid,
-		Dir: m.dir, Mode: mode, Effort: m.effort, Research: research,
+		Dir: m.dir, Mode: mode, Effort: m.effort, Research: research, Without: without,
 	})
 	m.entries = append(m.entries, entry{kind: kUser, text: shown, prov: p.ID()})
 	if err != nil {

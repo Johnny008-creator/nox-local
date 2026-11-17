@@ -293,7 +293,7 @@ Remove `~/.local/bin/nox-local`, `~/.nox-local` and the models you downloaded. N
 
 `1.0.0-rc1`. Feature-complete and measured; it needs real-world use before 1.0.0. Bugs and rough edges go in [Issues](../../issues).
 
-Next: measured profiles for more GPUs, macOS testing, and a better first-run experience for people without a model.
+Next: **Windows** (the code already cross-compiles for it; it is untested), **NVIDIA and Intel measurements** (Vulkan covers all three vendors, but only an AMD card sits here), macOS testing, and a better first-run experience for people without a model.
 
 ## Contributing
 

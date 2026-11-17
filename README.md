@@ -231,6 +231,7 @@ command = "go build ./..."
 | `NOX_LLAMA_SERVER` | path to your `llama-server` |
 | `NOX_MODELS` | where GGUF files live (default `~/models`) |
 | `NOX_PLAIN` | set to anything for no animation |
+| `NOX_SPEC` | speculative decoding for one run: `ngram-mod`, `draft-mtp`, `ngram-simple`… Off by default, see below |
 
 ## Headless
 

@@ -140,6 +140,12 @@ func (s *Server) Ensure(ctx context.Context, model string, status func(string)) 
 		args = append(args, "--spec-type", "ngram-mod")
 	}
 	args = append(args, p.Args...)
+	// NOX_SPEC overrides the profile's choice for one run, e.g. ngram-mod or
+	// draft-mtp. Measured on the reference machine, speculation was neutral
+	// or slower in agent use, so every profile turns it off by default.
+	if spec := os.Getenv("NOX_SPEC"); spec != "" {
+		args = append(args, "--spec-type", spec)
+	}
 	logPath := paths.File("local", "llama-server.log")
 	logf, err := os.Create(logPath)
 	if err != nil {

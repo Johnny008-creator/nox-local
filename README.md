@@ -27,10 +27,10 @@ Cloud agents stop when your quota runs out, and they see every file they read. A
 
 NØX-Local is that loop, rewritten for small models:
 
-- **A short menu.** Ten built-in tools with one-line descriptions (Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch, Artifact, TodoWrite), so a 4B model picks the right one.
+- **A short menu.** Ten built-in tools with short descriptions (Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch, Artifact, TodoWrite), so a 4B model picks the right one.
 - **A context that lasts.** Files are read 300 lines at a time, tool output is trimmed and old results are dropped first. A 32K window goes a long way.
 - **Forgiving parsing.** When the model writes a tool call as plain text instead of making one, the call is recovered and run.
-- **No runaway loops.** Three identical calls in a row stop the turn.
+- **No runaway loops.** A third identical call is blocked and the model is told to try something else.
 - **MCP is opt-in.** You switch on the servers you need; the model never sees forty tools it cannot handle.
 
 The numbers on the reference machine (RX 6500 XT 8 GB, Ryzen 5 5600GT, 16 GB DDR4) are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
@@ -185,7 +185,7 @@ What makes it work on small models:
 - **Ten tools, short descriptions.** A 4B model follows a menu it can read in one screen.
 - **Trimming over summarising.** Tool output keeps its head and tail, files are read in 300-line chunks, and old tool results are dropped before the conversation itself.
 - **Plain-text recovery.** If the model prints a tool call instead of calling it, NØX-Local parses it and runs it anyway.
-- **A loop guard.** Three identical calls in a row end the turn with a message instead of burning the context.
+- **A loop guard.** A third identical call is blocked with "try a different approach" instead of burning the context.
 - **Thinking budget.** `medium` and `high` effort cap the reasoning tokens (2K and 6K), so a model cannot think for eleven thousand tokens on a one-line answer.
 
 ## MCP
@@ -267,7 +267,7 @@ Tool calls need a model with tool support. All five models in the catalog are te
 A 4B limitation, not a parser problem. The 9B and Ornith write Czech well; Nemotron is happiest in English.
 
 **It keeps repeating the same call**
-The loop guard stops after three identical calls. Tell it what it did wrong, or give it a smaller task.
+The loop guard blocks a third identical call and tells the model to try another approach. If it still spins, tell it what it did wrong, or give it a smaller task.
 
 ## FAQ
 

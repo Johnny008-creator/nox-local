@@ -2,186 +2,289 @@
 
 # N Ø X · Local
 
-**A terminal coding agent that runs only on your own machine.**
+**A coding agent that runs only on your machine.**
 
-It uses the same TUI as the cloud NØX, with an agent loop built for 4B to 35B models running in llama.cpp.
+Own terminal UI · llama.cpp on Vulkan · no API keys · works offline
 
 ![version](https://img.shields.io/badge/version-1.0.0--rc1-14b8a6)
 ![go](https://img.shields.io/badge/Go-1.27-00ADD8?logo=go&logoColor=white)
 ![llama.cpp](https://img.shields.io/badge/llama.cpp-Vulkan-8b5cf6)
-![platform](https://img.shields.io/badge/platform-Linux-f59e0b)
+![platform](https://img.shields.io/badge/platform-Linux%20%C2%B7%20AMD%2FIntel%2FNVIDIA-f59e0b)
 ![license](https://img.shields.io/badge/license-MIT-22c55e)
 
 </div>
 
-<sub>What the TUI looks like (MEDIUM tier, sidebar on):</sub>
+![The NØX-Local terminal UI: a prompt, tool calls, an inline diff and the answer](docs/assets/demo.gif)
 
-```text
- N  Ø  X                                                                                 ╭──────────────────────────────╮
- ━━━━━━━━━━━━━━━━━━━                                                                     │ M O D E L S                  │
-  local  qwen3.5-9b · llama.cpp · v1.0.0-rc1                                             │ ○ qwen3.5-4b                 │
- ~/code/notes-cli                                                                        │ ● qwen3.5-9b          active │
-                                                                                         ╰──────────────────────────────╯
- ▎ add a --json flag to the export command                                               ╭──────────────────────────────╮
- ∴ thought for 2.1s                                                                      │ C O N T E X T                │
- ◆ Read cmd/export.go ✓ 1.2s                                                             │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
-   ⎿ 87 lines                                                                            │ 9.4k / 32.8k · 28%           │
- ◆ Edit cmd/export.go ✓ 3.4s                                                             ╰──────────────────────────────╯
- ╭────────────────────────────────────────────────────────────────────────────────────╮  ╭──────────────────────────────╮
- │ export.go  +2 −1                                                                   │  │ P L A N  2/3                 │
- │   fs.StringVar(&out, "o", "", "output file")                                       │  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
- │ + fs.BoolVar(&asJSON, "json", false, "write JSON…")                                │  │ ✓ read export.go             │
- ╰────────────────────────────────────────────────────────────────────────────────────╯  │ ✓ add the --json flag        │
- ◆ Run go test ./... ✓ 0.2s                                                              │ ● run the tests              │
-   ⎿ ok    notes-cli/cmd  0.21s                                                          ╰──────────────────────────────╯
- Added --json to export: it writes the notes as a JSON array instead of Markdown. Tests  ╭──────────────────────────────╮
- pass.                                                                                   │ C H A N G E D                │
-                                                                                         │ cmd/                         │
-                                                                                         │ └ export.go          +2 −1   │
-                                                                                         ╰──────────────────────────────╯
-                                                                                         ╭──────────────────────────────╮
-                                                                                         │ S E S S I O N                │
-                                                                                         │ 1 turn · 1m 12s              │
-                                                                                         ╰──────────────────────────────╯
- ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ❯ Ask NØX anything · / for commands                                                      local · qwen3.5-9b · medium │
- ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-  ⏵⏵ auto mode on (shift+tab to cycle)                                                                       9.4k tokens
-```
+NØX-Local is a coding agent for people who want the work to stay on their own computer. It drives llama.cpp directly, so there is no API key, no account, no per-token bill and nothing sent to a server. The whole agent loop is built around one constraint most agents ignore: **a 4B model has to be able to use it.**
+
+---
 
 ## Why
 
-Cloud agents send your code to someone else's server and stop working when your quota runs out. NØX-Local runs on your own machine, offline and for free. Small models need a different agent loop than frontier models, though, and most of NØX-Local is that loop:
+Cloud agents stop when your quota runs out, and they see every file they read. A local model is free and private, but the agent loops written for frontier models fall apart on it: too many tools, prompts that fill the window, and tool calls the small model formats slightly wrong.
 
-- The system prompt is short and there are only nine built-in tools, so a 4B model still picks the right one.
-- Tool output is trimmed, files are read 300 lines at a time, and old tool results are dropped first when the context fills.
-- If the model writes a tool call as plain text instead of making it, the call is recovered and run.
-- A loop guard stops the model after three identical calls in a row.
-- MCP servers are opt-in, so the model only sees the tools you switched on.
+NØX-Local is that loop, rewritten for small models:
 
-## Model tiers
+- **A short menu.** Ten built-in tools with one-line descriptions (Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch, Artifact, TodoWrite), so a 4B model picks the right one.
+- **A context that lasts.** Files are read 300 lines at a time, tool output is trimmed and old results are dropped first. A 32K window goes a long way.
+- **Forgiving parsing.** When the model writes a tool call as plain text instead of making one, the call is recovered and run.
+- **No runaway loops.** Three identical calls in a row stop the turn.
+- **MCP is opt-in.** You switch on the servers you need; the model never sees forty tools it cannot handle.
 
-Pick a tier with `/model` at any time. The conversation carries over.
-
-The speeds below were measured on the reference machine: RX 6500 XT 8 GB on PCIe 3.0 x4, Ryzen 5 5600GT, 16 GB DDR4.
-
-| Tier | Model | File | Writing | Editing code¹ | Tool calls |
-|---|---|---|---|---|---|
-| **FAST** | Qwen3.5-4B UD-Q4_K_XL | 3.0 GB | 51 tok/s | 219 tok/s | 3/3 |
-| **MEDIUM** | Mellum2.1-12B-A2.5B MXFP4 | 7.3 GB | 53 tok/s | 186 tok/s | 3/3 |
-| **HIGH** | gpt-oss-20b MXFP4 | 12.1 GB | 19 tok/s | 38 tok/s | 3/3 |
-| **ULTRA** | Qwen3.6-35B-A3B UD-IQ3_XXS | 13.2 GB | 22 tok/s | 42 tok/s | 3/3 |
-
-¹ When the model rewrites code it has just read, n-gram speculative decoding drafts tokens from the context. FAST also uses its MTP head. Both are on by default and cost no VRAM.
-
-HIGH and ULTRA are mixture-of-experts models. Their experts sit in system RAM, so together with the KV cache and llama-server's working memory each tier uses well under 18 GB. That leaves room for a browser and an editor.
-
-The full numbers and the settings that mattered are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md). The research behind the picks is in [docs/research](docs/research/reports).
+The numbers on the reference machine (RX 6500 XT 8 GB, Ryzen 5 5600GT, 16 GB DDR4) are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ## Features
 
 | | |
 |---|---|
-| **Tools** | `Read` `Write` `Edit` `Glob` `Grep` `Bash` `WebSearch` `WebFetch` `TodoWrite`, plus the tools of enabled MCP servers |
-| **MCP** | Servers come from `config.toml` or a project `.mcp.json`. `/mcp` switches them on or off, and only servers that are on get connected. |
-| **Skills** | `SKILL.md` folders from `.nox/skills`, `~/.nox-local/skills` and `~/.claude/skills`, listed compactly in the prompt. Built in: **find-skills** (search GitHub, review, install), **create-skill** (write a new one) and **visualize** (charts, animations, diagrams) |
-| **Task list** | The model plans multi-step work with `TodoWrite`. You see the list in the sidebar and with `/todos`. |
-| **Context** | A gauge in the sidebar. At 70 % you get a hint, and `/compact` summarises the conversation and continues in a fresh context. |
-| **Safety** | Four modes: `manual`, `plan`, `auto` and `yolo`. In `auto`, protected files (`.env`, keys) and risky commands still ask first. |
-| **Undo** | Git checkpoints before every turn. `/rewind` restores files. |
-| **Sessions** | `/resume`, `-c` to continue, and `/export` to Markdown |
-| **Project memory** | `NOX.md` instructions, created with `/init` and loaded into every prompt |
-| **Automation** | Hooks on prompt, after tools and at the end of a turn, optional auto-commit, and `/worktree` |
-| **Headless** | `nox-local -p "…"` prints the answer, and `--output json` streams events. |
+| **Terminal UI** | Sidebar with models, context and the plan; inline diff cards; full-screen `/diff`; command palette; mouse selection; vim keys |
+| **Offline** | Runs entirely on this machine. Only WebSearch and WebFetch reach the network; `/web off` removes them |
+| **Approvals** | `manual` asks before every change, `plan` is read-only, `auto` asks only for risky commands, `yolo` never asks. Each approval shows the diff |
+| **Undo** | A Git checkpoint before every turn. `/rewind` restores files, `/redo` puts them back, `/revert` fixes one file |
+| **Context** | A meter in the sidebar. At 70 % it suggests `/compact`, which summarises the thread and continues in a fresh context |
+| **Sessions** | Saved automatically, `/resume` or `-c`, `/fork` to branch a thread, `/search` across all of them |
+| **Project memory** | `NOX.md` written by `/init`, loaded into every prompt |
+| **MCP** | Servers from `~/.nox-local/config.toml` or a project `.mcp.json`, switched on one by one with `/mcp` |
+| **Skills** | `SKILL.md` folders from `.nox/skills`, `~/.nox-local/skills` and `~/.claude/skills`. Ships with `find-skills`, `create-skill` and `visualize` |
+| **Hooks** | Shell commands on prompt, after a tool, and at the end of a turn; optional auto-commit |
+| **Background work** | The model can start a dev server, get the URL back, and keep working |
+| **Headless** | `nox-local -p "…"` for scripts and CI, `--output json` for event streams |
 
 ## Quick start
+
+### Requirements
+
+- Linux with a Vulkan-capable GPU. 8 GB of VRAM is the tested target; smaller models run on less.
+- Go 1.27+ if you build from source.
+- About 3 GB of disk for the first model.
+
+> No GPU? `llama-server` falls back to the CPU and NØX-Local runs, but expect a few tokens per second. The smallest model is the one to try.
 
 ### 1. Build llama.cpp with Vulkan
 
 ```sh
 sudo pacman -S --needed cmake ninja vulkan-headers spirv-headers shaderc   # Arch
+# Debian/Ubuntu: sudo apt install build-essential cmake ninja-build libvulkan-dev glslc
+
 git clone --depth 1 https://github.com/ggml-org/llama.cpp ~/.nox-local/llama.cpp
 cmake -S ~/.nox-local/llama.cpp -B ~/.nox-local/llama.cpp/build -G Ninja \
   -DGGML_VULKAN=ON -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
-cmake --build ~/.nox-local/llama.cpp/build --target llama-server llama-bench
+cmake --build ~/.nox-local/llama.cpp/build --target llama-server --parallel
 ```
 
-NØX-Local looks for `llama-server` in this order: `$NOX_LLAMA_SERVER`, then `PATH`, then `~/.nox-local/llama.cpp`, then `~/.nox/llama.cpp`.
+NØX-Local looks for `llama-server` in `$NOX_LLAMA_SERVER`, then `PATH`, then `~/.nox-local/llama.cpp`, then `~/.nox/llama.cpp`. If your build is somewhere else, set the variable:
+
+```sh
+export NOX_LLAMA_SERVER=/path/to/llama-server
+```
 
 ### 2. Install NØX-Local
 
-Download `nox-local` from [Releases](../../releases), or build it from source (Go 1.27+):
-
 ```sh
 git clone https://github.com/Johnny008-creator/nox-local && cd nox-local
-sh scripts/install.sh            # → ~/.local/bin/nox-local
+sh scripts/install.sh            # builds and installs to ~/.local/bin
 ```
 
-### 3. Get a model and start
+Or grab the binary from [Releases](../../releases):
 
 ```sh
-nox-local models                 # catalog, sizes, what is downloaded
-nox-local pull mellum2.1-12b     # into ~/models, resumes if interrupted
-nox-local                        # TUI
+curl -L -o nox-local https://github.com/Johnny008-creator/nox-local/releases/latest/download/nox-local-linux-amd64
+chmod +x nox-local && mv nox-local ~/.local/bin/
 ```
+
+### 3. Get a model
+
+```sh
+nox-local models                 # catalog with sizes, and what you already have
+nox-local pull qwen3.5-4b        # 3.0 GB, resumes if the download is interrupted
+```
+
+Models are stored as plain GGUF files in `~/models` (change it with `NOX_MODELS`). Any llama.cpp-compatible GGUF works; the catalog only lists the ones measured here.
+
+### 4. Run
+
+```sh
+cd ~/code/my-project
+nox-local
+```
+
+Type a request. In `auto` mode the agent edits files and runs commands, and asks before anything risky. **Shift+Tab** cycles the mode, **Ctrl+O** picks another model, **Ctrl+C** twice quits.
+
+### Check that it works
+
+```sh
+nox-local -p "which files are in this directory? use the Glob tool"
+```
+
+The answer should mention real files, and the output should include a tool call. If it answers from memory instead, the model is too small for tools — try the 9B.
+
+## Models
+
+Measured on the reference machine with the settings NØX-Local uses (Vulkan, `--fit` placement, KV cache q8_0, flash attention, ngram speculative decoding).
+
+| Tier | Model | File | Context | Generation | Notes |
+|---|---|---|---|---|---|
+| **FAST** | Qwen3.5 4B | 3.0 GB | 64K | ~35 tok/s (32 at 19K ctx) | The default for a reason: whole model in VRAM, good at tools |
+| **MEDIUM** | Qwen3.5 9B | 6.1 GB | 32K | dense, fits in 8 GB | Noticeably better Czech and longer reasoning; the one to use for real work |
+| **HIGH** | Qwen2.5-Coder 14B | 9.0 GB | 16K | ~5 tok/s, partly on the CPU | Coding specialist; slower, stronger at Go/Python edits |
+| **ULTRA** | Qwen3.8 27B | 10.9 GB | 16K | ~3 tok/s, ~70 tok/s prompt | Deep reasoning only. Expect to wait |
+
+Also in the catalog: **Gemma 4 E4B** (5.1 GB, images, weak at tools) and three legacy profiles (Mellum 12B, gpt-oss 20B, Qwen3.6 35B-A3B) kept for older setups.
+
+Switch at any time with `/model`; the conversation carries over and the model reloads on your next message. A 4B model is fine for small edits and will happily write a whole file. For anything that needs to hold a plan in its head, the 9B is worth the extra load time.
 
 ## Using it
 
+Type `/` for the list, or `Ctrl+K` for the palette.
+
 | Command | |
 |---|---|
-| `/model` | switch tier, which loads on your next message |
-| `/effort` | `low` answers directly, `medium` thinks first, `high` thinks longer |
-| `/mode` | `manual`, `plan`, `auto` or `yolo` (also **Shift+Tab**) |
-| `/mcp` | switch MCP servers on and off |
-| `/skills` | browse skills and use one |
-| `/todos` | show the agent's task list |
-| `/compact` | summarise and continue in a fresh context |
-| `/rewind` | undo file changes from earlier turns |
-| `/resume` · `/clear` · `/export` | sessions |
+| `/model` · `/effort` | pick a model · how much it may think (`low`, `medium`, `high`) |
+| `/mode` | `manual`, `plan`, `auto`, `yolo` |
+| `/plan` · `/go` | plan-first: the agent plans read-only, `/go` executes the approved plan |
+| `/research` | deep research: rounds of searching and reading, ending in a sourced report |
+| `/btw` | side question about the work in flight; the running turn is not touched |
+| `/compact` · `/handoff` | summarise into a fresh context · start a new thread from a summary |
+| `/diff` · `/rewind` · `/redo` · `/revert` | see every change, undo a turn, undo the undo, fix one file |
+| `/todos` · `/artifacts` | the agent's task list · documents, pages, charts and diagrams it made |
+| `/web` | switch WebSearch and WebFetch off so nothing leaves the machine |
+| `/mcp` · `/skills` · `/memory` · `/init` | servers · skills · which `NOX.md` files are loaded · write one |
+| `/resume` · `/search` · `/export` · `/fork` | sessions |
 | `/doctor` | check llama-server, models and MCP |
-| `/help` | everything else |
+| `/theme` · `/plain` · `/vim` · `/keys` | looks and keys |
+| `/config` · `/trust` · `/hooks` | settings, project settings, hooks |
 
-**Keys:**
+Keys worth knowing: **Shift+Tab** mode, **Ctrl+T** effort, **Ctrl+O** model, **Esc** interrupt, **Alt+Enter** queue a message for the running turn, **Ctrl+K** palette.
 
-- **Ctrl+O** picks a model and **Ctrl+T** cycles effort.
-- **@file** attaches a project file.
-- **Esc** interrupts the current turn; prompts you queued still run.
-- **Ctrl+C** stops everything.
+### Approvals
+
+Every change that is not a plain read asks first in `manual`, and risky commands ask in `auto`. The card shows the diff or the command, and `a` allows that tool or command for the rest of the session. Protected files (`.env`, keys, `.git/`) always ask.
+
+## How it works
+
+A turn is a loop: the model gets a short system prompt, the project's `NOX.md`, a compact tool menu and a trimmed tool history. It answers with text and tool calls; the tools run; the results go back in.
+
+What makes it work on small models:
+
+- **Ten tools, short descriptions.** A 4B model follows a menu it can read in one screen.
+- **Trimming over summarising.** Tool output keeps its head and tail, files are read in 300-line chunks, and old tool results are dropped before the conversation itself.
+- **Plain-text recovery.** If the model prints a tool call instead of calling it, NØX-Local parses it and runs it anyway.
+- **A loop guard.** Three identical calls in a row end the turn with a message instead of burning the context.
+- **Thinking budget.** `medium` and `high` effort cap the reasoning tokens (2K and 6K), so a model cannot think for eleven thousand tokens on a one-line answer.
+
+## MCP
+
+Small models handle a few tools well, not forty. Servers are configured but stay off until you switch them on:
+
+```toml
+# ~/.nox-local/config.toml
+[mcp.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
+```
+
+`/mcp` lists what is configured and toggles each server. A project's `.mcp.json` (Claude Code format) is read too, and asks for `/trust` first because it can start processes.
+
+## Skills
+
+A skill is a folder with a `SKILL.md` the model can read when it decides it is relevant. NØX-Local looks in `.nox/skills`, `~/.nox-local/skills` and `~/.claude/skills`, so skills you already use elsewhere show up here.
+
+Built in: **find-skills** (search GitHub, review a skill, install it), **create-skill** (write a new one in the format small models follow), **visualize** (charts, animations, diagrams).
+
+## Memory
+
+`NOX.md` in the project is loaded into every prompt. `/init` writes one by reading the repository. `~/.nox-local/NOX.md` applies everywhere. `/memory` shows what is loaded.
 
 ## Configuration
 
-Settings live in `~/.nox-local/config.toml`, which is created with comments on the first run. A project can override them in `.nox/config.toml`.
+`~/.nox-local/config.toml` is created with comments on first run; a project can override it in `.nox/config.toml`.
 
 ```toml
-model  = "mellum2.1-12b"   # tier to start with
-mode   = "auto"
-effort = "low"
-
-[mcp.filesystem]           # off until you switch it on with /mcp
-command = "npx"
-args    = ["-y", "@modelcontextprotocol/server-filesystem", "."]
+model  = "qwen3.5-4b"      # default model
+mode   = "auto"            # manual | plan | auto | yolo
+effort = "low"             # low | medium | high
+# auto_commit = true
 
 [[hooks]]
-event   = "stop"
+event   = "stop"           # prompt | post_tool | stop
 command = "go build ./..."
 ```
 
-NØX-Local keeps all its state in `~/.nox-local` and shares nothing with the cloud NØX.
+| Variable | |
+|---|---|
+| `NOX_LLAMA_SERVER` | path to your `llama-server` |
+| `NOX_MODELS` | where GGUF files live (default `~/models`) |
+| `NOX_PLAIN` | set to anything for no animation |
 
-## Notes for AMD / Vulkan
+## Headless
 
-- NØX-Local starts `llama-server` with `RADV_PERFTEST=nogttspill`. Without it, Mesa spills buffers into system RAM over PCIe, and a PCIe x4 card then runs 3 to 8 times slower.
-- With nogttspill, VRAM is a hard limit shared with your desktop. Placement is left to `--fit`, which keeps a 1 GiB margin.
-- Don't raise `-ub` or `-b` by hand on the MoE tiers.
-- MoE models load without mmap. Experts kept in a memory-mapped file get evicted from the page cache and slow generation down badly.
+```sh
+nox-local -p "summarise this repository"                 # prints the answer
+nox-local -p "add a --json flag to export" --output json # event stream
+nox-local -c -p "and now run the tests"                  # continue the last session
+nox-local -m qwen3.5-9b --mode plan -p "how would you …"  # pick model and mode
+```
+
+Headless never blocks on a question: `auto` and `yolo` allow tool calls, `manual` and `plan` deny them. Exit code is non-zero when the turn fails, so it works in scripts and CI.
+
+## Troubleshooting
+
+**`llama-server not found`**
+Build llama.cpp with `-DGGML_VULKAN=ON` (step 1) or point `NOX_LLAMA_SERVER` at an existing `llama-server`.
+
+**`no model downloaded yet`**
+`nox-local pull qwen3.5-4b`. If the download was interrupted, run it again; it resumes.
+
+**The first message takes 10–20 seconds**
+That is the model loading into VRAM. Later turns start immediately. `/model` reloads it.
+
+**Generation is very slow**
+Check that the model is not spilling into system RAM: `radeontop`, `nvtop` or `nvidia-smi` show the footprint. A smaller model or `/compact` fixes most cases. `RADV_PERFTEST=nogttspill` is set for you; if you use a different Vulkan driver, look for the equivalent.
+
+**The GPU resets or the screen flickers**
+VRAM ran out, usually with a browser open. Use the 4B, or lower the context.
+
+**The model answers but never calls a tool**
+Tool calls need a model with tool support. The 4B and 9B are tested; very small or older GGUFs are not. In `plan` mode the model also cannot run anything, by design.
+
+**Czech output is garbled**
+A 4B limitation, not a parser problem. The 9B writes Czech well.
+
+**It keeps repeating the same call**
+The loop guard stops after three identical calls. Tell it what it did wrong, or give it a smaller task.
+
+## FAQ
+
+**Is anything sent to a server?**
+No, unless the model uses `WebSearch` or `WebFetch`. Those two tools run without an approval prompt, because they are read-only. If you want a hard guarantee, `/web off` leaves them out of every turn; the model then has no network at all.
+
+**Is there telemetry?**
+No.
+
+**Can I use Ollama or LM Studio instead of llama.cpp?**
+Not directly: NØX-Local manages `llama-server` because it needs the flags, the context size and the speed settings per model. An OpenAI-compatible endpoint would need a separate provider.
+
+**Does it work on macOS or Windows?**
+The Go code builds there and the TUI is portable, but llama.cpp setup and the process handling are only tested on Linux. Treat it as Linux-first.
+
+**NVIDIA or Intel GPU?**
+Vulkan handles all three vendors. The measured profiles are for an 8 GB AMD card; other GPUs work but the numbers will differ.
+
+**How do I uninstall it?**
+Remove `~/.local/bin/nox-local`, `~/.nox-local` and the models you downloaded. Nothing else is installed.
 
 ## Status
 
-`1.0.0-rc1` is feature-complete and measured on the reference machine. It still needs real-world use before 1.0.0. Bugs and rough edges go in [Issues](../../issues).
+`1.0.0-rc1`. Feature-complete and measured; it needs real-world use before 1.0.0. Bugs and rough edges go in [Issues](../../issues).
 
-**Next:**
+Next: measured profiles for more GPUs, macOS testing, and a better first-run experience for people without a model.
 
-- More measured profiles for other GPUs.
+## Contributing
+
+Issues and pull requests are welcome. The one rule is the design constraint: the agent loop must stay usable by a 4B model. If a change adds a tool, a prompt section or a round trip, say what it costs a small model.
+
+Run `go test ./...` before opening a PR.
 
 ## License
 

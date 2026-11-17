@@ -8,7 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/session"
+	"github.com/Johnny008-creator/nox-local/internal/session"
 )
 
 // /find searches this conversation and scrolls to a hit; /search looks

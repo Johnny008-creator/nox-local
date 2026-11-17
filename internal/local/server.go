@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 // Port is where nox-local runs llama-server (off 8080 to avoid clashes).

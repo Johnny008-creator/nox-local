@@ -9,7 +9,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
 )
 
 // theme is one palette. a1→a2→a3 is the signature gradient (logo, prompt

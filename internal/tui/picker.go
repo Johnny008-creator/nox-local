@@ -9,7 +9,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
 )
 
 // pickItem is one row of a picker. label may be pre-styled; render overrides

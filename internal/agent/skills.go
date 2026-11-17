@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 // Skill is a folder with a SKILL.md (frontmatter: name, description) that

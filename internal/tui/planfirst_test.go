@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
 )
 
 // Plan first runs the turn read-only; /go sends the plan back in the real

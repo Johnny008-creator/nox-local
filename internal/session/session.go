@@ -14,7 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 // Entry kinds mirror the TUI's (user, text, thinking, tool, info, error).

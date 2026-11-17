@@ -12,8 +12,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 // Artifacts: what a conversation produced that is more than text — charts,

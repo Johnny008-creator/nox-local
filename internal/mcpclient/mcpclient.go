@@ -18,7 +18,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/proc"
+	"github.com/Johnny008-creator/nox-local/internal/proc"
 )
 
 type ServerConfig struct {

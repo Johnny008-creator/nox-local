@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 // Backend serves models on this machine (see internal/local). The loop is

@@ -6,7 +6,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
 )
 
 // todo is one item of the agent's task list (TodoWrite, same shape for the

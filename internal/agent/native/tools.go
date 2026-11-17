@@ -19,10 +19,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
-	"github.com/Johnny008-creator/N0X-Local/internal/docexport"
-	"github.com/Johnny008-creator/N0X-Local/internal/mcpclient"
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/docexport"
+	"github.com/Johnny008-creator/nox-local/internal/mcpclient"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 type props map[string]any

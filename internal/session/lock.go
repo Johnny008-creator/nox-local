@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 // A running NØX writes ~/.nox/state/run-<pid>.json naming its directory and

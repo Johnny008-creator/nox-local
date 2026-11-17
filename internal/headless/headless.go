@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
 )
 
 // Run streams the answer to stdout (tool activity to stderr), or every

@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 var mu sync.Mutex

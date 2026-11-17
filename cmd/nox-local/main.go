@@ -12,15 +12,15 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
-	"github.com/Johnny008-creator/N0X-Local/internal/agent/native"
-	"github.com/Johnny008-creator/N0X-Local/internal/config"
-	"github.com/Johnny008-creator/N0X-Local/internal/headless"
-	"github.com/Johnny008-creator/N0X-Local/internal/local"
-	"github.com/Johnny008-creator/N0X-Local/internal/mcpclient"
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
-	"github.com/Johnny008-creator/N0X-Local/internal/session"
-	"github.com/Johnny008-creator/N0X-Local/internal/tui"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/agent/native"
+	"github.com/Johnny008-creator/nox-local/internal/config"
+	"github.com/Johnny008-creator/nox-local/internal/headless"
+	"github.com/Johnny008-creator/nox-local/internal/local"
+	"github.com/Johnny008-creator/nox-local/internal/mcpclient"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/session"
+	"github.com/Johnny008-creator/nox-local/internal/tui"
 )
 
 const version = "1.0.0-rc1"

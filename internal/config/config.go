@@ -8,9 +8,9 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/hooks"
-	"github.com/Johnny008-creator/N0X-Local/internal/mcpclient"
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/hooks"
+	"github.com/Johnny008-creator/nox-local/internal/mcpclient"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 type Config struct {

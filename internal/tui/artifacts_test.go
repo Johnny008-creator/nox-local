@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
 )
 
 func TestArtifactsFindsFencedBlocks(t *testing.T) {

@@ -2,7 +2,7 @@ package tui
 
 import (
 	"fmt"
-	"github.com/Johnny008-creator/N0X-Local/internal/checkpoint"
+	"github.com/Johnny008-creator/nox-local/internal/checkpoint"
 	"maps"
 	"os"
 	"os/exec"
@@ -14,11 +14,11 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/agent"
-	"github.com/Johnny008-creator/N0X-Local/internal/config"
-	"github.com/Johnny008-creator/N0X-Local/internal/local"
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
-	"github.com/Johnny008-creator/N0X-Local/internal/trust"
+	"github.com/Johnny008-creator/nox-local/internal/agent"
+	"github.com/Johnny008-creator/nox-local/internal/config"
+	"github.com/Johnny008-creator/nox-local/internal/local"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/trust"
 )
 
 type command struct {

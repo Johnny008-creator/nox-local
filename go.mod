@@ -1,4 +1,4 @@
-module github.com/Johnny008-creator/N0X-Local
+module github.com/Johnny008-creator/nox-local
 
 go 1.27.3
 

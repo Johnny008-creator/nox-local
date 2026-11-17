@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Johnny008-creator/N0X-Local/internal/paths"
+	"github.com/Johnny008-creator/nox-local/internal/paths"
 )
 
 // Cross-session memory: short facts NØX should keep in mind next time, per

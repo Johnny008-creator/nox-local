@@ -1,0 +1,143 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg)}
+canvas{display:block;width:100vw;height:100vh}
+#err{position:fixed;left:10px;right:10px;bottom:10px;display:none;padding:10px 12px;border-radius:10px;background:#b3494922;border:1px solid #b34949;color:#b34949;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap}
+</style></head>
+<body><canvas id="c"></canvas><div id="err"></div>
+<script>
+// NØX canvas runtime: the model's code defines draw(ctx, w, h, t) for an
+// animation (t = seconds since start) or just draws once with ctx, W, H.
+// nox.* helpers draw charts and text in the app's colours, offline.
+const THEME = /*THEME*/{"bg":"#FFFDF8","fg":"#22201B","dim":"#5F594C","grid":"#DDD6C7","accent":"#2F5D50"}/*END*/;
+document.documentElement.style.setProperty('--bg', THEME.bg);
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0;
+function fit() {
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+fit();
+function showError(e) {
+  const box = document.getElementById('err');
+  box.style.display = 'block';
+  box.textContent = String(e && e.message || e);
+  try { parent.postMessage({ nox: 'error', message: box.textContent }, '*'); } catch (_) {}
+}
+window.addEventListener('error', (e) => showError(e.error || e.message));
+
+const nox = (() => {
+  const palette = [THEME.accent, '#E07A5F', '#3D85C6', '#F2B134', '#8E6CC4', '#2A9D8F', '#D1495B', '#6B8E23'];
+  const lerp = (a, b, p) => a + (b - a) * p;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const ease = (p) => 1 - Math.pow(1 - clamp(p, 0, 1), 3);
+  function text(c, s, x, y, o = {}) {
+    c.save();
+    c.fillStyle = o.color || THEME.fg;
+    c.font = (o.bold ? '700 ' : '') + (o.size || 14) + 'px system-ui, sans-serif';
+    c.textAlign = o.align || 'left'; c.textBaseline = o.baseline || 'alphabetic';
+    c.fillText(String(s), x, y);
+    c.restore();
+  }
+  function frame(o) {
+    const pad = o.pad ?? 40;
+    return { x: o.x ?? pad, y: o.y ?? (o.title ? pad + 26 : pad), w: o.w ?? W - 2 * pad, h: o.h ?? H - 2 * pad - (o.title ? 26 : 0) - 20 };
+  }
+  function title(c, o) { if (o.title) text(c, o.title, (o.x ?? 40), (o.y ?? 40) - (o.x == null ? 4 : -18), { size: 17, bold: true }); }
+  function axes(c, f, max, steps = 4) {
+    c.save(); c.strokeStyle = THEME.grid; c.lineWidth = 1;
+    const dec = max / steps < 1 ? 2 : max / steps % 1 ? 1 : 0;
+    for (let i = 0; i <= steps; i++) {
+      const y = f.y + f.h - (f.h * i) / steps;
+      c.beginPath(); c.moveTo(f.x, y); c.lineTo(f.x + f.w, y); c.stroke();
+      text(c, (max * i / steps).toFixed(dec), f.x - 8, y + 4, { size: 11, color: THEME.dim, align: 'right' });
+    }
+    c.restore();
+  }
+  // niceMax rounds the axis top so its 4 steps are round numbers (1, 2, 2.5, 5 × 10ⁿ).
+  const niceMax = (v) => {
+    const raw = (v || 1) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / mag;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * mag * 4;
+  };
+  // bar(ctx, {labels, values, title, t}): bars grow in during the first second when t is passed.
+  function bar(c, o) {
+    const f = frame(o); f.x += 30; f.w -= 30; title(c, o);
+    const max = niceMax(Math.max(...o.values)), n = o.values.length, gap = f.w / n, bw = gap * 0.62, p = o.t == null ? 1 : ease(o.t / 0.9);
+    axes(c, f, max);
+    o.values.forEach((v, i) => {
+      const h = (v / max) * f.h * p, x = f.x + i * gap + (gap - bw) / 2;
+      c.fillStyle = o.colors ? o.colors[i % o.colors.length] : palette[o.color ?? 0];
+      c.beginPath(); c.roundRect ? c.roundRect(x, f.y + f.h - h, bw, h, [6, 6, 0, 0]) : c.rect(x, f.y + f.h - h, bw, h); c.fill();
+      text(c, o.labels ? o.labels[i] : i + 1, x + bw / 2, f.y + f.h + 16, { size: 11, color: THEME.dim, align: 'center' });
+      if (p === 1) text(c, v, x + bw / 2, f.y + f.h - h - 6, { size: 11, align: 'center' });
+    });
+  }
+  // line(ctx, {labels, series: [{name, values}] or values, title, t}): lines draw in when t is passed.
+  function line(c, o) {
+    const f = frame(o); f.x += 30; f.w -= 30; title(c, o);
+    const series = o.series || [{ name: '', values: o.values }];
+    const max = niceMax(Math.max(...series.flatMap((s) => s.values))), p = o.t == null ? 1 : ease(o.t / 1.4);
+    axes(c, f, max);
+    const n = series[0].values.length, dx = f.w / Math.max(1, n - 1);
+    if (o.labels) o.labels.forEach((l, i) => text(c, l, f.x + i * dx, f.y + f.h + 16, { size: 11, color: THEME.dim, align: 'center' }));
+    series.forEach((s, k) => {
+      c.save(); c.strokeStyle = palette[k % palette.length]; c.lineWidth = 2.5; c.lineJoin = 'round';
+      c.beginPath();
+      const last = (n - 1) * p;
+      for (let i = 0; i <= Math.floor(last); i++) { const x = f.x + i * dx, y = f.y + f.h - (s.values[i] / max) * f.h; i ? c.lineTo(x, y) : c.moveTo(x, y); }
+      const i0 = Math.floor(last), fr = last - i0;
+      if (fr > 0 && i0 + 1 < n) c.lineTo(f.x + (i0 + fr) * dx, f.y + f.h - (lerp(s.values[i0], s.values[i0 + 1], fr) / max) * f.h);
+      c.stroke(); c.restore();
+      if (s.name) text(c, '● ' + s.name, f.x + f.w - 10 - k * 0, f.y + 14 + k * 18, { size: 12, color: palette[k % palette.length], align: 'right' });
+    });
+  }
+  // pie(ctx, {labels, values, title, t, donut}): slices sweep in when t is passed.
+  function pie(c, o) {
+    title(c, o);
+    const total = o.values.reduce((a, b) => a + b, 0), p = o.t == null ? 1 : ease(o.t / 1.1);
+    const cx = (o.x ?? W * 0.38), cy = (o.y ?? H / 2 + 10), r = o.r ?? Math.min(W, H) * 0.32;
+    let a = -Math.PI / 2;
+    o.values.forEach((v, i) => {
+      const sweep = (v / total) * Math.PI * 2 * p;
+      c.fillStyle = palette[i % palette.length];
+      c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, r, a, a + sweep); c.closePath(); c.fill();
+      a += sweep;
+      text(c, '■ ' + (o.labels ? o.labels[i] : i + 1) + ' · ' + Math.round((v / total) * 100) + ' %', cx + r + 30, cy - (o.values.length * 11) + i * 22, { size: 13, color: palette[i % palette.length] });
+    });
+    if (o.donut) { c.fillStyle = THEME.bg; c.beginPath(); c.arc(cx, cy, r * 0.58, 0, Math.PI * 2); c.fill(); }
+  }
+  // rand(seed) gives a repeatable random() for scenes that should look the same every replay.
+  function rand(seed = 1) { let s = seed >>> 0 || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+  const hsl = (h, s = 70, l = 55, a = 1) => `hsla(${h},${s}%,${l}%,${a})`;
+  function clear(c) { c.fillStyle = THEME.bg; c.fillRect(0, 0, W, H); }
+  return { colors: { ...THEME, palette }, text, bar, line, pie, rand, hsl, lerp, clamp, ease, clear, trails: false };
+})();
+
+let __paused = false, __start = performance.now(), __pauseAt = 0;
+window.addEventListener('message', (e) => {
+  if (!e.data || !e.data.nox) return;
+  if (e.data.nox === 'pause' && !__paused) { __paused = true; __pauseAt = performance.now(); }
+  if (e.data.nox === 'play' && __paused) { __paused = false; __start += performance.now() - __pauseAt; requestAnimationFrame(__tick); }
+});
+function __tick(now) {
+  if (__paused || typeof draw !== 'function') return;
+  if (!nox.trails) nox.clear(ctx);
+  try { draw(ctx, W, H, (now - __start) / 1000); } catch (e) { showError(e); return; }
+  requestAnimationFrame(__tick);
+}
+// A one-off drawing is kept and scaled by CSS; an animation re-fits.
+window.addEventListener('resize', () => { if (typeof draw === 'function') fit(); });
+nox.clear(ctx);
+</script>
+<script>
+/*CODE*/
+</script>
+<script>
+try { if (typeof setup === 'function') setup(ctx, W, H); } catch (e) { showError(e); }
+if (typeof draw === 'function') requestAnimationFrame(__tick);
+</script>
+</body></html>

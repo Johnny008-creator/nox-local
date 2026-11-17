@@ -89,7 +89,7 @@ sh scripts/install.sh            # builds and installs to ~/.local/bin
 Or grab the binary from [Releases](../../releases):
 
 ```sh
-curl -L -o nox-local https://github.com/Johnny008-creator/nox-local/releases/latest/download/nox-local-linux-amd64
+curl -L -o nox-local https://github.com/Johnny008-creator/nox-local/releases/download/v1.0.0-rc1/nox-local-linux-amd64
 chmod +x nox-local && mv nox-local ~/.local/bin/
 ```
 
@@ -159,7 +159,7 @@ Keys worth knowing: **Shift+Tab** mode, **Ctrl+T** effort, **Ctrl+O** model, **E
 
 ### Approvals
 
-Every change that is not a plain read asks first in `manual`, and risky commands ask in `auto`. The card shows the diff or the command, and `a` allows that tool or command for the rest of the session. Protected files (`.env`, keys, `.git/`) always ask.
+Every change that is not a plain read asks first in `manual`, and risky commands ask in `auto`. The card shows the diff or the command, and `a` allows that tool or command for the rest of the session. Protected files (`.env`, keys, `.git/`) always ask, except in `yolo`.
 
 ## How it works
 

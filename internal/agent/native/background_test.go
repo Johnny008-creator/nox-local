@@ -31,7 +31,10 @@ func TestBashCancelKillsChildren(t *testing.T) {
 
 func TestBackgroundServerReportsURL(t *testing.T) {
 	r := runner{dir: t.TempDir()}
-	out, err := r.background(context.Background(), "cp /bin/sleep ./noxbg_zz; echo 'Serving on http://0.0.0.0:8765/ now'; ./noxbg_zz 30")
+	// A copy of bash under a new name is a process pgrep can find by name.
+	// (Copying sleep no longer works: on systems with coreutils as one
+	// multicall binary it refuses an unknown argv[0].)
+	out, err := r.background(context.Background(), `cp "$(command -v bash)" ./noxbg_zz; echo 'Serving on http://0.0.0.0:8765/ now'; ./noxbg_zz -c "sleep 30"`)
 	defer StopBackground()
 	if err != nil {
 		t.Fatal(err)

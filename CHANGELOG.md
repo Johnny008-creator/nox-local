@@ -7,6 +7,7 @@
 ## Unreleased
 
 - **The terminal UI is now NØX's own.** The TUI was ported from the cloud NØX onto the local backend: the gradient wordmark and header, the sidebar (models, context meter, plan, changed files, session), the diff cards inside approvals, the full-screen `/diff` viewer with split and unified modes, syntax-highlighted code, toasts, the command palette, vim keys, mouse selection, `@file` completion, session search, worktrees, goals and loops. The local backend is unchanged: same llama.cpp tiers, lean agent loop, MCP and skills. Providers without an equivalent were dropped from the UI: no API keys, `/login`, budgets, provider switching, racing two cloud models, Discord mirroring or dictation. `/compact` and `/handoff` now work by asking the local model for a summary and seeding the next session with it.
+- **`/web` switches the network tools off.** With `/web off`, WebSearch and WebFetch are left out of every later turn, so the model has no way to reach the network at all. The status line shows "web off".
 - **Fixes from testing:**
   - `/plan` + `/go` works: the plan-first turn is remembered on its own, so `/go` no longer answers "no plan waiting". The status line shows "plan first" and "plan ready · /go runs it".
   - `/btw` now sees the tool rows (what the agent read, ran and changed), not just the words, so it can answer "what are you doing?" while a turn runs.

@@ -90,20 +90,7 @@ func (s *Server) Sampling(model string, effort agent.Effort) map[string]any {
 	if !ok {
 		return nil
 	}
-	m := p.Sampling(effort != agent.EffortLow)
-	if effort != agent.EffortHigh {
-		return m
-	}
-	kw, _ := m["chat_template_kwargs"].(map[string]any)
-	if _, ok := kw["reasoning_effort"]; !ok {
-		return m
-	}
-	out := make(map[string]any, len(m))
-	for k, v := range m {
-		out[k] = v
-	}
-	out["chat_template_kwargs"] = map[string]any{"reasoning_effort": "high"}
-	return out
+	return p.Sampling(effort != agent.EffortLow)
 }
 
 // Ensure makes sure llama-server is serving model and returns its context

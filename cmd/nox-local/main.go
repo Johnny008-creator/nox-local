@@ -114,7 +114,7 @@ func main() {
 
 // pickDefault prefers FAST (Qwen 4B) or MEDIUM (Qwen 9B), then any downloaded model.
 func pickDefault() string {
-	for _, id := range []string{"qwen3.5-4b", "qwen3.5-9b", "qwen2.5-coder-14b", "qwen3.8-27b"} {
+	for _, id := range []string{"qwen3.5-4b", "qwen3.5-9b", "ornith-1.5-9b", "nemotron-bolt-e4b", "saluki-27b"} {
 		if p, _ := local.Find(id); p.Installed() {
 			return p.ID
 		}

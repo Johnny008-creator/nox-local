@@ -46,40 +46,37 @@ func TestServerEnvNoGTTSpill(t *testing.T) {
 	}
 }
 
-// Thinking-only models must not be asked to skip thinking, or their
-// reasoning lands in the answer text.
-func TestMellumAlwaysThinks(t *testing.T) {
-	p, _ := Find("mellum2.1-12b")
-	for _, think := range []bool{false, true} {
-		kw, _ := p.Sampling(think)["chat_template_kwargs"].(map[string]any)
-		if kw["enable_thinking"] != true {
-			t.Errorf("think=%v: enable_thinking = %v", think, kw["enable_thinking"])
-		}
-	}
-}
-
+// Every profile still in the catalog must be one a user can actually pick,
+// and Saluki's template needs an explicit effort or it thinks for minutes.
 func TestSamplingEffort(t *testing.T) {
 	var s Server
 	kw := func(m map[string]any) map[string]any { v, _ := m["chat_template_kwargs"].(map[string]any); return v }
-	if got := kw(s.Sampling("gpt-oss-20b", agent.EffortLow))["reasoning_effort"]; got != "low" {
-		t.Errorf("gpt-oss low = %v", got)
-	}
-	if got := kw(s.Sampling("gpt-oss-20b", agent.EffortHigh))["reasoning_effort"]; got != "high" {
-		t.Errorf("gpt-oss high = %v", got)
-	}
-	if got := kw(s.Sampling("gpt-oss-20b", agent.EffortMedium))["reasoning_effort"]; got != "medium" {
-		t.Errorf("gpt-oss medium = %v", got)
-	}
 	if m := s.Sampling("qwen3.5-4b", agent.EffortHigh); m["temperature"] != 0.6 {
 		t.Errorf("qwen high should use thinking sampling: %v", m)
 	}
-	if got := kw(s.Sampling("qwen3.8-27b", agent.EffortLow))["enable_thinking"]; got != false {
-		t.Errorf("qwen3.8-27b low enable_thinking = %v", got)
+	if m := s.Sampling("qwen3.5-4b", agent.EffortLow); m["temperature"] != 0.7 {
+		t.Errorf("qwen low should use fast sampling: %v", m)
 	}
-	if got := kw(s.Sampling("qwen3.8-27b", agent.EffortMedium))["reasoning_effort"]; got != "low" {
-		t.Errorf("qwen3.8-27b medium reasoning_effort = %v", got)
+	if got := kw(s.Sampling("saluki-27b", agent.EffortHigh))["reasoning_effort"]; got != "low" {
+		t.Errorf("saluki high reasoning_effort = %v, want low", got)
 	}
-	if got := kw(s.Sampling("qwen3.8-27b", agent.EffortHigh))["reasoning_effort"]; got != "high" {
-		t.Errorf("qwen3.8-27b high reasoning_effort = %v", got)
+	if got := kw(s.Sampling("saluki-27b", agent.EffortHigh))["enable_thinking"]; got != true {
+		t.Errorf("saluki high enable_thinking = %v, want true", got)
+	}
+	if got := kw(s.Sampling("saluki-27b", agent.EffortLow))["enable_thinking"]; got != nil {
+		t.Errorf("saluki low should leave thinking off via the request, got %v", got)
+	}
+}
+
+// The five models the catalog is built around are the ones on the machine;
+// a typo in an id would fall through to "model not downloaded".
+func TestCatalogIDs(t *testing.T) {
+	for _, id := range []string{"qwen3.5-4b", "qwen3.5-9b", "ornith-1.5-9b", "nemotron-bolt-e4b", "saluki-27b"} {
+		if _, ok := Find(id); !ok {
+			t.Errorf("catalog is missing %s", id)
+		}
+	}
+	if len(Catalog) != 5 {
+		t.Errorf("catalog has %d profiles, want 5", len(Catalog))
 	}
 }

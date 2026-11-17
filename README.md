@@ -121,18 +121,26 @@ The answer should mention real files, and the output should include a tool call.
 
 ## Models
 
-Measured on the reference machine with the settings NØX-Local uses (Vulkan, `--fit` placement, KV cache q8_0, flash attention, ngram speculative decoding).
+Five models, measured on the reference machine (RX 6500 XT 8 GB, Ryzen 5 5600GT, 16 GB DDR4) with the settings NØX-Local uses: Vulkan, `--fit` placement, KV cache q8_0, flash attention.
 
-| Tier | Model | File | Context | Generation | Notes |
+| Model | File | Context | Generation | Prompt | Notes |
 |---|---|---|---|---|---|
-| **FAST** | Qwen3.5 4B | 3.0 GB | 64K | ~35 tok/s (32 at 19K ctx) | The default for a reason: whole model in VRAM, good at tools |
-| **MEDIUM** | Qwen3.5 9B | 6.1 GB | 32K | dense, fits in 8 GB | Noticeably better Czech and longer reasoning; the one to use for real work |
-| **HIGH** | Qwen2.5-Coder 14B | 9.0 GB | 16K | ~5 tok/s, partly on the CPU | Coding specialist; slower, stronger at Go/Python edits |
-| **ULTRA** | Qwen3.8 27B | 10.9 GB | 16K | ~3 tok/s, ~70 tok/s prompt | Deep reasoning only. Expect to wait |
+| **Qwen3.5 4B** | 3.0 GB | 64K | **32 tok/s** | 590 t/s | The default: whole model in VRAM, follows tools well, answers fast |
+| **Qwen3.5 9B** | 6.1 GB | 32K | 9 tok/s | 380 t/s | Better Czech and longer reasoning; the one for real work if you can wait |
+| **Ornith 1.5 9B** | 5.2 GB | 32K | **22 tok/s** | 425 t/s | A Qwen3.5 fine-tune at IQ4_XS; nearly the 9B's quality, twice the speed |
+| **Nemotron 3.5 Bolt E4B** | 5.1 GB | 32K | 8 tok/s | 655 t/s | NVIDIA on a Gemma 4 base; fastest at reading long context, slow to write |
+| **Underdog Saluki 27B** | 7.9 GB | 16K | 3 tok/s | ~5 t/s | 27B at IQ2: the smartest model that fits, and it feels like it. Way too slow for agent work on this GPU unless the prompts stay short |
 
-Also in the catalog: **Gemma 4 E4B** (5.1 GB, images, weak at tools) and three legacy profiles (Mellum 12B, gpt-oss 20B, Qwen3.6 35B-A3B) kept for older setups.
+All five run on an 8 GB card. Pick with `/model`; the conversation carries over and the model reloads on your next message. `-m <id>` starts on a specific one.
 
-Switch at any time with `/model`; the conversation carries over and the model reloads on your next message. A 4B model is fine for small edits and will happily write a whole file. For anything that needs to hold a plan in its head, the 9B is worth the extra load time.
+### Which one?
+
+- **Default / small edits:** Qwen3.5 4B. It is the only one here that feels instant.
+- **Real work, Czech, longer plans:** Ornith 1.5 9B — the best speed-to-quality ratio on this hardware.
+- **Long files to read, short answer:** Nemotron Bolt E4B. Its prompt processing is the fastest of the five; generation is not.
+- **A hard question where you can wait:** Saluki 27B. On this GPU it is a batch job, not a chat partner.
+
+The numbers come from `llama-bench` (`-p 512 -n 128`, q8_0 KV, flash attention) except Saluki, which does not fit on the GPU alone and was measured through `llama-server --fit`. Method and older measurements: [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ## Using it
 
@@ -246,10 +254,10 @@ Check that the model is not spilling into system RAM: `radeontop`, `nvtop` or `n
 VRAM ran out, usually with a browser open. Use the 4B, or lower the context.
 
 **The model answers but never calls a tool**
-Tool calls need a model with tool support. The 4B and 9B are tested; very small or older GGUFs are not. In `plan` mode the model also cannot run anything, by design.
+Tool calls need a model with tool support. All five models in the catalog are tested with them; very small or older GGUFs are not. In `plan` mode the model also cannot run anything, by design.
 
 **Czech output is garbled**
-A 4B limitation, not a parser problem. The 9B writes Czech well.
+A 4B limitation, not a parser problem. The 9B and Ornith write Czech well; Nemotron is happiest in English.
 
 **It keeps repeating the same call**
 The loop guard stops after three identical calls. Tell it what it did wrong, or give it a smaller task.

@@ -1,59 +1,55 @@
 # Benchmarks
 
-These were measured on 2026-11-07 on an RX 6500 XT 8 GB (PCIe 3.0 x4), a Ryzen 5 5600GT and 16 GB of DDR4. The software was llama.cpp `cd959ba` (Vulkan, RADV / Mesa 26.2.5).
+Measured on the reference machine: RX 6500 XT 8 GB (PCIe 3.0 x4), Ryzen 5 5600GT, 16 GB DDR4. llama.cpp `cd959ba`, Vulkan through RADV (Mesa 26.2.5), flash attention on, KV cache q8_0.
 
-Each model was launched through `llama-server` exactly the way `nox-local` launches it: `--fit` placement, KV cache q8_0, flash attention, and the context window from the catalog.
+The numbers below come from `llama-bench -p 512 -n 128 -fa 1 -ctk q8_0 -ctv q8_0`, which is how the launch settings can be compared without a chat template in the way. Saluki 27B does not fit in 8 GB on its own, so its numbers are from `llama-server --fit` with a 16K context.
 
-- **Prefill:** a ~3.5K-token prompt.
-- **Generation:** 400 tokens.
-- **Tools:** 3 attempts, each a `read_file` call that must parse.
+| Model | File | Context | pp512 t/s | tg128 t/s |
+|---|---|---|---|---|
+| Qwen3.5 4B | 3.0 GB | 64K | 591 | **32.5** |
+| Qwen3.5 9B | 6.1 GB | 32K | 378 | 8.8 |
+| Ornith 1.5 9B IQ4_XS | 5.2 GB | 32K | 425 | **22.0** |
+| Nemotron 3.5 Bolt E4B | 5.1 GB | 32K | **655** | 8.5 |
+| Underdog Saluki 27B IQ2 | 7.9 GB | 16K | ~5 | ~3.2 |
 
-| Tier | Model | Context | Prefill tok/s | Generation tok/s | Tools |
-|---|---|---|---|---|---|
-| FAST | Qwen3.5-4B UD-Q4_K_XL + MTP | 64K | 553 | **55.3** (MTP, 81 % accepted) | 3/3 |
-| FAST | without MTP | 64K | 664 | 36.4 | 3/3 |
-| MEDIUM | Mellum2.1-12B-A2.5B MXFP4 | 32K | 491 | **46.3** | 3/3 |
-| MEDIUM | with MTP | 32K | 308 | 40.1 (63 % accepted, slower) | 3/3 |
-| HIGH | gpt-oss-20b MXFP4 | 64K | 207 | **18.2** | 3/3 |
-| ULTRA | Qwen3.6-35B-A3B UD-IQ3_XXS | 48K | 180 | **20.9** | 3/3 |
+`pp512` is prompt processing, `tg128` is generation; both are what an agent feels: prompt speed on the first turn and after every tool result, generation speed for the answer.
 
-All four tiers also answered a real `nox-local -p` task correctly: count the profiles in `catalog.go` using tools. Wall time for that task was 14 s on FAST, 27 s on MEDIUM, 42 s on HIGH and 46 s on ULTRA.
+## What the numbers say
+
+- **4B is in a class of its own.** 32 tok/s generation with the whole model in VRAM. It is the only model here that feels interactive.
+- **Ornith 1.5 9B is the sweet spot.** A Qwen3.5 fine-tune quantized to IQ4_XS: 22 tok/s, 425 t/s prefill, 5.2 GB. Nearly the 9B's capability at twice the speed.
+- **The 9B is not twice the 4B.** It is 2.5× slower to write and 1.6× slower to read. Worth it for Czech and longer plans, painful for tool loops.
+- **Nemotron Bolt reads fast and writes slowly.** 655 t/s prefill is the best here, 8.5 t/s generation the worst of the small models. Good for "read this 20K file and answer briefly", bad for writing code.
+- **Saluki 27B does not fit.** Everything about it is slow on an 8 GB card, and a 2K-token agent prompt takes minutes to process. It is the smartest model in the catalog and the least usable in a loop.
+
+## Context depth
+
+Generation speed does not stay put as the context fills. Measured on Qwen3.5-4B with llama-server, 64K context:
+
+| Prompt | Generation | Prefill |
+|---|---|---|
+| 2.4K | 43 tok/s | — |
+| 10K | 43 tok/s | — |
+| 19K | 12 tok/s | 263 t/s |
+
+Past roughly 10K tokens the speed drops, which is why `/compact` exists and why the profiles keep the context at 32K rather than the model's full 64K or 256K.
 
 ## Speculative decoding
 
-`--spec-type ngram-mod` drafts tokens from text that is already in the context. It needs no draft model and no VRAM.
+`--spec-type ngram-mod` drafts tokens from text already in the context. No draft model, no VRAM. Agents mostly rewrite code they have just read, so it is a clear win on edits:
 
-Agents mostly rewrite code they have just read, so it is on for every profile; FAST combines it with MTP.
+| | Edit, no spec | Edit, ngram-mod |
+|---|---|---|
+| Qwen3.5 4B | 60.3 | **218.7** |
+| Mellum 12B (legacy) | 49.4 | **185.7** |
 
-The edit task asks the model to reproduce a ~3.5K-character Go file with one variable renamed (900 tokens out, temperature 0).
+It also **halves prompt processing** at long context on Qwen3.5, so the Qwen and Ornith profiles launch with `--spec-type none`. Nemotron was measured both ways in a server run with a short prompt: ngram changed generation not at all (8.1 vs 7.8) and cut prefill from 74 to 36 t/s, so it runs without speculation too.
 
-| Tier | Edit, no spec | Edit, ngram-mod | Plain generation with ngram-mod |
-|---|---|---|---|
-| FAST (MTP → MTP + ngram) | 60.3 | **218.7** | 48.4 → 51.0 |
-| MEDIUM | 49.4 | **185.7** | 46.3 → 53.0 |
-| HIGH | 18.3 | **38.2** | 18.5 → 18.7 |
-| ULTRA | 22.9 | **41.6** | 20.9 → 21.9 |
-
-Things that did not help on HIGH:
-
-- **CPU thread count:** 4–8 threads all gave 18.5 tok/s, and 12 threads dropped to 16.8.
-- **Smaller context:** dropping from 64K to 32K gave +0.3 tok/s.
-
-Generation of experts in RAM is bound by DDR4 bandwidth, not by the CPU.
+MTP (the multi-token prediction heads in the Qwen3.5-4B/9B files) only wins on short prompts. Past ~10K tokens it collapses: 11 tok/s with MTP against 32 without at 19K, and prompt processing halves. An agent spends most of a session past 10K, so MTP is not used.
 
 ## Settings that mattered
 
-- **`RADV_PERFTEST=nogttspill`**
-  - Without it, Mesa spills GPU buffers into system RAM over PCIe x4.
-  - On FAST at 64K that cost 3× in generation (36 → 11 tok/s) and 8× in prefill (664 → 78).
-  - `nox-local` sets it for `llama-server`.
-- **`--load-mode none` for MoE models**
-  - With mmap, the experts that `--fit` keeps in RAM get evicted from the page cache.
-  - gpt-oss-20b fell from 18 to 2.9 tok/s, and ULTRA prefill from 180 to 41.
-- **Do not raise `-ub` / `-b` on MoE tiers**
-  - With nogttspill, VRAM is a hard limit shared with the desktop.
-  - `-ub 2048` on ULTRA exhausted it and crashed the compositor (amdgpu "Not enough memory for command submission").
-  - Leave placement to `--fit`, which keeps a 1 GiB margin.
-- **MTP**
-  - Clear win on Qwen3.5-4B.
-  - A loss on Mellum, so it is off there.
+- **`RADV_PERFTEST=nogttspill`** — without it, Mesa spills GPU buffers into system RAM over PCIe x4. On the 4B at 64K that cost 3× in generation (36 → 11 tok/s) and 8× in prefill (664 → 78). NØX-Local sets it for `llama-server`.
+- **`--load-mode none` for models that do not fit** — with mmap, the layers `--fit` keeps in RAM get evicted from the page cache. On the 27B that turned a working 3 tok/s into a server that never answered.
+- **Do not raise `-ub` / `-b`** — with nogttspill, VRAM is a hard limit. `-ub 2048` on a 27B exhausted it and crashed the compositor. Placement is left to `--fit`, which keeps a 1 GiB margin.
+- **32K context, not the model maximum** — KV cache is VRAM. The 4B trains at 64K and is launched with 64K because it fits; the 9B trains at 256K and is launched with 32K because 64K would push layers onto the CPU.

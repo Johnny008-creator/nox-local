@@ -34,14 +34,6 @@ type Profile struct {
 var qwenThink = map[string]any{"temperature": 0.6, "top_p": 0.95, "top_k": 20, "min_p": 0.0}
 var qwenFast = map[string]any{"temperature": 0.7, "top_p": 0.8, "top_k": 20, "min_p": 0.0}
 var nemotron = map[string]any{"temperature": 0.6, "top_p": 0.95}
-var gemma = map[string]any{"temperature": 1.0, "top_p": 0.95, "top_k": 64, "min_p": 0.0}
-
-// Mellum is thinking-only: told not to think (enable_thinking=false) it gets
-// an empty <think></think> and then reasons anyway, straight into the
-// answer. So it always runs with thinking on, and with the larger reply
-// budget that thinking needs.
-var mellum = map[string]any{"temperature": 0.6, "top_p": 0.95,
-	"chat_template_kwargs": map[string]any{"enable_thinking": true}, "max_tokens": 8192}
 
 // noSpec turns speculative decoding off. Measured with Qwen3.5-4B on the
 // RX 6500 XT (llama-server, 64k context, 2026-11-09):
@@ -57,71 +49,40 @@ var mellum = map[string]any{"temperature": 0.6, "top_p": 0.95,
 // most of a session past 10k, so the Qwen3.5 profiles run without it.
 var noSpec = []string{"--spec-type", "none"}
 
-// coder14bArgs: the 9 GB file does not fit 8 GB of VRAM, so every GPU layer
-// counts. 16k context instead of 32k halves the KV cache, a 256 MiB --fit
-// margin instead of 1 GiB leaves more room for layers (36 of 49 on the
-// GPU), and loading without mmap keeps the CPU layers out of the page cache.
-// Measured on a 5.6k prompt: generation 3.7 → 5.3 tok/s, prompt 110 → 151
-// t/s. Speculation (ngram) made no difference.
-var coder14bArgs = []string{"--load-mode", "none", "--fit-target", "256"}
+// Saluki's template defaults to reasoning_effort xhigh, which on a 27B at
+// IQ2 means minutes of thinking per turn. low keeps it usable and still
+// reasons; enable_thinking has to be repeated because a sampling entry
+// replaces the whole chat_template_kwargs map.
+var salukiThink = map[string]any{"temperature": 0.6, "top_p": 0.95, "top_k": 20, "min_p": 0.0,
+	"chat_template_kwargs": map[string]any{"enable_thinking": true, "reasoning_effort": "low"}}
 
-// qwen27bArgs: the 10.9 GB file does not fit 8 GB of VRAM. Left to --fit,
-// whole layers went to the CPU, and with them the recurrent (DeltaNet)
-// blocks, which the CPU runs one token at a time on a single core: a 2.4k
-// prompt did not finish in 4 minutes. Every layer now stays on the GPU and
-// only the FFN weights of layers 24–64 (about 4 GB) live in RAM, where the
-// CPU multiplies them on all threads. Measured: prompt 70 t/s, generation
-// 3 tok/s. VRAM is nearly full, so --fit is off and nothing else may use
-// the GPU. MTP is off: on Qwen3.5 it halved prompt speed.
-var qwen27bArgs = []string{"--load-mode", "none", "-fit", "off", "-ngl", "99",
-	"-ot", `blk\.(2[4-9]|[3-6][0-9])\.ffn_(up|down|gate)=CPU`, "--spec-type", "none"}
-
-// Qwen3.8 27B sampling: reasoning_effort low at medium effort, so it does
-// not freeze in 6-minute think loops.
-var qwen27bThink = map[string]any{"temperature": 0.6, "top_p": 0.95, "top_k": 20, "min_p": 0.0,
-	"chat_template_kwargs": map[string]any{"reasoning_effort": "low"}}
-var qwen27bFast = map[string]any{"temperature": 0.7, "top_p": 0.8, "top_k": 20, "min_p": 0.0,
-	"chat_template_kwargs": map[string]any{"enable_thinking": false}}
-
-// gpt-oss reasons through its Harmony template: reasoning_effort, not
-// enable_thinking, sets how long it thinks.
-func gptOSS(effort string) map[string]any {
-	return map[string]any{"temperature": 1.0, "top_p": 1.0,
-		"chat_template_kwargs": map[string]any{"reasoning_effort": effort}}
-}
-
-// Catalog holds the four tiers (FAST, MEDIUM, HIGH, ULTRA) plus fallbacks,
-// picked in docs/research (second round). No profile pins -ngl or
-// --n-cpu-moe: llama-server's --fit (on by default) sizes GPU layers and
-// expert offload to the free VRAM. Only the context size is fixed.
-// Speeds in the notes are generation tok/s measured on the reference machine
+// Catalog is the set of models this machine is set up for. Each profile
+// fixes only the context window and, where needed, extra llama-server flags:
+// --fit (on by default) places the layers and expert offload to the free
+// VRAM. Speeds are generation tok/s measured on the reference machine
 // (RX 6500 XT 8 GB, PCIe 3.0 x4, 16 GB DDR4) through llama-server.
 var Catalog = []Profile{
 	{ID: "qwen3.5-4b", Name: "Qwen3.5 4B", Repo: "unsloth/Qwen3.5-4B-MTP-GGUF", File: "Qwen3.5-4B-UD-Q4_K_XL.gguf",
 		Local: "Qwen3.5-4B-MTP-UD-Q4_K_XL.gguf", SizeGB: 2.99, Ctx: 65536, Think: qwenThink, NoThink: qwenFast,
-		Args: noSpec, Tested: true, Note: "FAST · 35 tok/s, 32 at 19k context · whole model on the GPU"},
+		Args: noSpec, Tested: true, Note: "FAST · 3 GB · 32 tok/s, prompt 590 t/s · whole model on the GPU"},
 	{ID: "qwen3.5-9b", Name: "Qwen3.5 9B", Repo: "unsloth/Qwen3.5-9B-MTP-GGUF", File: "Qwen3.5-9B-UD-Q4_K_XL.gguf",
 		Local: "Qwen3.5-9B-MTP-UD-Q4_K_XL.gguf", SizeGB: 6.14, Ctx: 32768, Think: qwenThink, NoThink: qwenFast,
-		Args: noSpec, Tested: true, Note: "MEDIUM · dense, whole model on the GPU"},
-	{ID: "qwen2.5-coder-14b", Name: "Qwen2.5-Coder 14B", Repo: "unsloth/Qwen2.5-Coder-14B-Instruct-GGUF", File: "Qwen2.5-Coder-14B-Instruct-Q4_K_M.gguf",
-		SizeGB: 8.99, Ctx: 16384, Think: qwenThink, NoThink: qwenFast,
-		Args: coder14bArgs, Tested: true, Note: "HIGH · 5 tok/s, partly on the CPU · coding specialist"},
-	{ID: "qwen3.8-27b", Name: "Qwen3.8 27B", Repo: "unsloth/Qwen3.8-27B-GGUF", File: "Qwen3.8-27B-UD-IQ3_XXS.gguf",
-		SizeGB: 10.93, Ctx: 16384, Think: qwen27bThink, NoThink: qwen27bFast,
-		Args: qwen27bArgs, Tested: true, Note: "ULTRA · 3 tok/s, prompt 70 t/s · slow, deep reasoning only"},
-	{ID: "mellum2.1-12b", Name: "Mellum2.1 12B-A2.5B", Repo: "JetBrains/Mellum2.1-12B-A2.5B-Thinking-GGUF",
-		File: "mtp/Mellum2.1-12B-A2.5B-Thinking-MTP-MXFP4_MOE.gguf", Local: "Mellum2.1-12B-A2.5B-Thinking-MTP-MXFP4_MOE.gguf",
-		SizeGB: 7.27, MoE: true, Ctx: 32768, Think: mellum, NoThink: mellum,
-		Note: "legacy · always thinks"},
-	{ID: "gpt-oss-20b", Name: "gpt-oss 20B", Repo: "ggml-org/gpt-oss-20b-GGUF", File: "gpt-oss-20b-MXFP4.gguf",
-		SizeGB: 12.11, MoE: true, Ctx: 65536, Think: gptOSS("medium"), NoThink: gptOSS("low"),
-		Note: "legacy · MoE, experts in RAM"},
-	{ID: "qwen3.6-35b-a3b", Name: "Qwen3.6 35B-A3B", Repo: "unsloth/Qwen3.6-35B-A3B-GGUF", File: "Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf",
-		SizeGB: 13.21, MoE: true, Ctx: 49152, Think: qwenThink, NoThink: qwenFast,
-		Note: "legacy · MoE, experts in RAM"},
-	{ID: "gemma-4-e4b", Name: "Gemma 4 E4B", Repo: "unsloth/gemma-4-E4B-it-GGUF", File: "gemma-4-E4B-it-UD-Q4_K_XL.gguf",
-		SizeGB: 5.12, Ctx: 32768, Think: gemma, NoThink: gemma,
-		Note: "extra · images · weak at tools"},
+		Args: noSpec, Tested: true, Note: "BALANCED · 6 GB · 9 tok/s, prompt 380 t/s · better Czech, longer reasoning"},
+	{ID: "ornith-1.5-9b", Name: "Ornith 1.5 9B", Repo: "leirbag99/Ornith-1.5-9B-IQ4_XS-NO-VISION-GGUF",
+		File: "ornith-1.5-9b-iq4_xs-imat.gguf", Local: "Ornith-1.5-9B-IQ4_XS.gguf",
+		SizeGB: 5.24, Ctx: 32768, Think: qwenThink, NoThink: qwenFast,
+		Args: noSpec, Tested: true, Note: "BALANCED · 5 GB · 22 tok/s, prompt 425 t/s · Qwen3.5 fine-tune, IQ4_XS"},
+	{ID: "nemotron-bolt-e4b", Name: "Nemotron 3.5 Bolt E4B", Repo: "unsloth/NVIDIA-Nemotron-3.5-Bolt-E4B-GGUF",
+		File:   "NVIDIA-Nemotron-3.5-Bolt-E4B-UD-Q4_K_XL.gguf",
+		SizeGB: 5.06, Ctx: 32768, Think: nemotron, NoThink: nemotron,
+		Args: noSpec, Tested: true, Note: "QUICK PREFILL · 5 GB · 8 tok/s, prompt 655 t/s · NVIDIA on a Gemma 4 base"},
+	{ID: "saluki-27b", Name: "Underdog Saluki 27B", Repo: "ConwayResearch/Underdog-Saluki-27B-1.0",
+		File:   "Underdog-Saluki-27B-1.0-IQ2-mix.gguf",
+		SizeGB: 7.90, Ctx: 16384, Think: salukiThink, NoThink: qwenFast,
+		// The 7.9 GB file does not fit in 8 GB of VRAM. With mmap, the layers
+		// --fit keeps in RAM get evicted from the page cache and the server
+		// stops answering; loading them outright gave 3.2 tok/s instead.
+		Args: append([]string{"--load-mode", "none"}, noSpec...), Tested: true, Note: "DEEP · 8 GB · 3 tok/s, prompt ~5 t/s · 27B at IQ2, the smartest that fits"},
 }
 
 // Find returns the profile with this id (case-insensitive).

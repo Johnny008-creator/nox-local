@@ -121,7 +121,7 @@ The answer should mention real files, and the output should include a tool call.
 
 ## Models
 
-Five models, measured on the reference machine (RX 6500 XT 8 GB, Ryzen 5 5600GT, 16 GB DDR4) with the settings NØX-Local uses: Vulkan, `--fit` placement, KV cache q8_0, flash attention.
+Five models, measured on the reference machine: **AMD Radeon RX 6500 XT 8 GB** (Vulkan, RADV), Ryzen 5 5600GT, 16 GB DDR4, running **Omarchy 4.5** (Arch Linux). Settings are the ones NØX-Local uses: `--fit` placement, KV cache q8_0, flash attention.
 
 | Model | File | Context | Generation | Prompt | Notes |
 |---|---|---|---|---|---|
@@ -140,7 +140,7 @@ All five run on an 8 GB card. Pick with `/model`; the conversation carries over 
 - **Long files to read, short answer:** Nemotron Bolt E4B. Its prompt processing is the fastest of the five; generation is not.
 - **A hard question where you can wait:** Saluki 27B. On this GPU it is a batch job, not a chat partner.
 
-The numbers come from `llama-bench` (`-p 512 -n 128`, q8_0 KV, flash attention) except Saluki, which does not fit on the GPU alone and was measured through `llama-server --fit`. Method and older measurements: [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+The numbers come from `llama-bench` (`-p 512 -n 128`, q8_0 KV, flash attention) on that machine, except Saluki, which does not fit on the GPU alone and was measured through `llama-server --fit`. Other GPUs work; expect different numbers. Method and older measurements: [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ## Using it
 

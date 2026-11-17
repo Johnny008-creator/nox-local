@@ -1,6 +1,6 @@
 # Benchmarks
 
-Measured on the reference machine: RX 6500 XT 8 GB (PCIe 3.0 x4), Ryzen 5 5600GT, 16 GB DDR4. llama.cpp `cd959ba`, Vulkan through RADV (Mesa 26.2.5), flash attention on, KV cache q8_0.
+Measured on the reference machine: **AMD Radeon RX 6500 XT 8 GB** (PCIe 3.0 x4), Ryzen 5 5600GT, 16 GB DDR4, **Omarchy 4.5** (Arch Linux, kernel `7.2.15-1-omarchy`, Hyprland 0.56). llama.cpp `cd959ba`, Vulkan through RADV (Mesa 26.2.5), flash attention on, KV cache q8_0.
 
 The numbers below come from `llama-bench -p 512 -n 128 -fa 1 -ctk q8_0 -ctv q8_0`, which is how the launch settings can be compared without a chat template in the way. Saluki 27B does not fit in 8 GB on its own, so its numbers are from `llama-server --fit` with a 16K context.
 

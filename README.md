@@ -90,7 +90,7 @@ sh scripts/install.sh            # builds and installs to ~/.local/bin
 Or grab the binary from [Releases](../../releases):
 
 ```sh
-curl -L -o nox-local https://github.com/Johnny008-creator/nox-local/releases/download/v1.0.0-rc1/nox-local-linux-amd64
+curl -L -o nox-local https://github.com/Johnny008-creator/nox-local/releases/latest/download/nox-local-linux-amd64
 chmod +x nox-local && mv nox-local ~/.local/bin/
 ```
 

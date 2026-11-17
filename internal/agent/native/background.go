@@ -126,7 +126,9 @@ func (r runner) background(ctx context.Context, command string) (string, error) 
 		out, _ := os.ReadFile(logPath)
 		s := strings.TrimSpace(string(out))
 		if err != nil {
-			return clip(s + "\n[" + err.Error() + "]"), fmt.Errorf("the command exited at once (%v)", err)
+			// The reason is in the log, and "exit status 1" alone tells nobody
+			// anything: hand back the tail.
+			return clip(s + "\n[" + err.Error() + "]"), fmt.Errorf("the command exited at once (%v): %s", err, strings.TrimSpace(tail(s, 5)))
 		}
 		if s == "" {
 			s = "(no output)"

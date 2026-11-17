@@ -113,7 +113,7 @@ NØX-Local looks for `llama-server` in this order: `$NOX_LLAMA_SERVER`, then `PA
 Download `nox-local` from [Releases](../../releases), or build it from source (Go 1.27+):
 
 ```sh
-git clone https://github.com/Johnny008-creator/nox-local && cd N0X-Local
+git clone https://github.com/Johnny008-creator/nox-local && cd nox-local
 sh scripts/install.sh            # → ~/.local/bin/nox-local
 ```
 

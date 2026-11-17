@@ -1,0 +1,39 @@
+name: Bug report
+description: Something in NØX-Local does not work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The most useful thing you can include is the
+        output of `/doctor` and the last lines of `~/.nox-local/local/llama-server.log`.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The output of `nox-local --version`
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver
+      description: e.g. RX 6500 XT 8 GB, Mesa 26.2.5, Vulkan
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: The id from `nox-local models`, e.g. qwen3.5-4b
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: `/doctor`, the server log, or anything printed in the terminal.
+      render: text

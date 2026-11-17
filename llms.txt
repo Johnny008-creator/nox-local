@@ -1,0 +1,24 @@
+# NØX-Local
+
+> A terminal coding agent that runs entirely on your own machine. It drives llama.cpp directly with no API key, no account and no per-token cost, and its agent loop is designed so a 4B model can use it.
+
+- Repository: https://github.com/Johnny008-creator/nox-local
+- License: MIT
+- Language: Go 1.27
+- Platforms: Linux (tested), macOS and Windows untested
+- Interface: terminal UI (Bubble Tea), headless `-p` mode with JSON events
+- Models: llama.cpp GGUF, catalog measured on an 8 GB GPU (Qwen3.5 4B/9B, Ornith 1.5 9B, Nemotron 3.5 Bolt E4B, Underdog Saluki 27B)
+- Features: ten built-in tools, approvals with inline diffs, plan-first mode, checkpoints and rewind, sessions, MCP (opt-in), skills, hooks, project memory, background jobs
+- Privacy: no telemetry; only WebSearch and WebFetch reach the network, and `/web off` removes them
+- Install: `git clone` + `scripts/install.sh`, or a release binary
+- Requirements: a Vulkan GPU (8 GB VRAM tested) and a Vulkan build of llama.cpp
+
+## What makes it different
+
+Most local coding agents assume the model behind them is a frontier model. NØX-Local is built the other way around: a short system prompt, ten tools with one-line descriptions, tool output trimmed instead of summarised, plain-text tool calls recovered, a loop guard, and a thinking budget per effort level.
+
+## Docs
+
+- README: https://github.com/Johnny008-creator/nox-local#readme
+- Benchmarks: https://github.com/Johnny008-creator/nox-local/blob/main/docs/BENCHMARKS.md
+- Issues: https://github.com/Johnny008-creator/nox-local/issues

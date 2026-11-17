@@ -6,6 +6,7 @@
 
 Own terminal UI · llama.cpp on Vulkan · no API keys · works offline
 
+[![CI](https://github.com/Johnny008-creator/nox-local/actions/workflows/ci.yml/badge.svg)](https://github.com/Johnny008-creator/nox-local/actions/workflows/ci.yml)
 ![version](https://img.shields.io/badge/version-1.0.0--rc1-14b8a6)
 ![go](https://img.shields.io/badge/Go-1.27-00ADD8?logo=go&logoColor=white)
 ![llama.cpp](https://img.shields.io/badge/llama.cpp-Vulkan-8b5cf6)
@@ -91,6 +92,12 @@ Or grab the binary from [Releases](../../releases):
 ```sh
 curl -L -o nox-local https://github.com/Johnny008-creator/nox-local/releases/download/v1.0.0-rc1/nox-local-linux-amd64
 chmod +x nox-local && mv nox-local ~/.local/bin/
+```
+
+With Go 1.27+ installed, one command is enough:
+
+```sh
+go install github.com/Johnny008-creator/nox-local/cmd/nox-local@v1.0.0-rc1
 ```
 
 ### 3. Get a model
@@ -297,3 +304,7 @@ Run `go test ./...` before opening a PR.
 ## License
 
 MIT © 2026 Jan Raszka. See [LICENSE](LICENSE).
+
+---
+
+If this saves you an API bill, or finally makes a small model usable, **a star helps other people find it**. Issues and ideas are just as welcome: [open one](https://github.com/Johnny008-creator/nox-local/issues).
